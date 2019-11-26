@@ -26,6 +26,7 @@ dependencies:
 - bytestring
 - text
 - vector
+- containers
 
 default-extensions:
 - FlexibleInstances

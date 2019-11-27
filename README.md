@@ -14,7 +14,7 @@ Example:
 , "CA"
 ]
 
->>> myCsvText ^.. namedCsv . taking 2 rows . _NamedRecord @[M.Map String String]
+>>> myCsvText ^.. namedCsv . taking 2 rows . _NamedRecord @(M.Map String String)
 [ fromList [("population","19540000"), ("state_code","NY")]
 , fromList [("population","39560000"), ("state_code","CA")]
 ]

@@ -1,11 +1,12 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE TypeFamilies #-}
 module Data.Csv.Lens where
 
 import Control.Lens
 import qualified Data.ByteString.Lazy as BL
-import Data.Csv
+import Data.Csv hiding (index)
 import qualified Data.Csv.Streaming as S
 import Data.Foldable
 import qualified Data.Vector as V
@@ -16,9 +17,22 @@ data IndexedRecord i where
   RecordWithName :: Header -> NamedRecord -> IndexedRecord Name
   RecordWithIndex :: Record -> IndexedRecord Int
 
-data Csv' n where
+type instance Index (IndexedRecord i) = i
+type instance IxValue (IndexedRecord i) = Field
+
+instance Ixed (IndexedRecord i) where
+  ix i f (RecordWithName h r) = RecordWithName h <$> (r & ix i %%~ f)
+  ix i f (RecordWithIndex r) = RecordWithIndex <$> (r & ix i %%~ f)
+
+data Csv' i where
   NamedCsv :: Header -> S.Records NamedRecord -> Csv' Name
   UnnamedCsv :: S.Records Record -> Csv' Int
+
+type instance Index (Csv' i) = Int
+type instance IxValue (Csv' i) = IndexedRecord i
+
+instance Ixed (Csv' i) where
+  ix i = rows . index i
 
 namedCsv :: Prism' BL.ByteString (Csv' Name)
 namedCsv = prism' embed project
@@ -52,42 +66,42 @@ rows :: IndexedTraversal' Int (Csv' i) (IndexedRecord i)
 rows f (NamedCsv h xs) = NamedCsv h . fmap unpackRecordWithName <$> (xs & traversed %%@~ \i x -> indexed f i (RecordWithName h x))
 rows f (UnnamedCsv xs) = UnnamedCsv . fmap unpackRecordWithIndex <$> (xs & traversed %%@~ \i x -> indexed f i (RecordWithIndex x))
 
-namedRec :: IndexPreservingTraversal' (IndexedRecord Name) NamedRecord
-namedRec = cloneIndexPreservingTraversal t
-  where
-    t :: Traversal' (IndexedRecord Name) NamedRecord
-    t f (RecordWithName h r) = RecordWithName h <$> f r
-
-namedRec' :: (FromNamedRecord a, ToNamedRecord b) => IndexPreservingTraversal (IndexedRecord Name) (IndexedRecord Name) a b
-namedRec' = namedRec . _NamedRecord'
-
-rec :: IndexPreservingTraversal' (IndexedRecord Int) Record
-rec = cloneIndexPreservingTraversal t
-  where
-    t :: Traversal' (IndexedRecord Int) Record
-    t f (RecordWithIndex r) = RecordWithIndex <$> f r
-
 columns :: IndexedTraversal' i (IndexedRecord i) Field
 columns f (RecordWithIndex r) = RecordWithIndex <$> (r & itraversed %%@~ indexed f)
 columns f (RecordWithName h r) = RecordWithName h <$> (r & itraversed %%@~ indexed f)
 
-_Record :: (FromRecord a, ToRecord a) => Prism' Record a
+column :: Eq i => i -> IndexedTraversal' i (IndexedRecord i) Field
+column i f x = x & ix i %%~ indexed f i
+
+-- row :: Int -> IndexedTraversal' Int ( i) Field
+-- row i f x = x & ix i %%~ indexed f i
+
+
+_Record :: (FromRecord a, ToRecord a) => Prism' (IndexedRecord Int) a
 _Record = _Record'
 
-_Record' :: (FromRecord a, ToRecord b) => Prism Record Record a b
+_Record' :: forall a b. (FromRecord a, ToRecord b) => Prism (IndexedRecord Int) (IndexedRecord Int) a b
 _Record' = prism embed project
   where
-    project s = either (const $ Left s) Right . runParser . parseRecord $ s
-    embed = toRecord
+    project :: IndexedRecord Int -> Either (IndexedRecord Int) a
+    project (RecordWithIndex r) =
+      case runParser (parseRecord r) of
+        Left _ -> Left (RecordWithIndex r)
+        Right a -> Right a
+    embed :: b -> IndexedRecord Int
+    embed = RecordWithIndex . toRecord
 
-_NamedRecord :: (FromNamedRecord a, ToNamedRecord a) => Prism' NamedRecord a
-_NamedRecord = _NamedRecord'
+_NamedRecord :: (FromNamedRecord a, ToNamedRecord a) => IndexPreservingTraversal' (IndexedRecord Name) a
+_NamedRecord = cloneIndexPreservingTraversal _NamedRecord'
 
-_NamedRecord' :: (FromNamedRecord a, ToNamedRecord b) => Prism NamedRecord NamedRecord a b
-_NamedRecord' = prism embed project
+_NamedRecord' :: forall a b. (FromNamedRecord a, ToNamedRecord b) => IndexPreservingTraversal (IndexedRecord Name) (IndexedRecord Name) a b
+_NamedRecord' = cloneIndexPreservingTraversal t
   where
-    project s = either (const $ Left s) Right . runParser . parseNamedRecord $ s
-    embed = toNamedRecord
+    t :: Traversal (IndexedRecord Name) (IndexedRecord Name) a b
+    t f (RecordWithName h r) =
+      case runParser (parseNamedRecord r) of
+        Left _ -> pure (RecordWithName h r)
+        Right a -> RecordWithName h . toNamedRecord <$> f a
 
 _Field :: (FromField a, ToField a) => Prism' Field a
 _Field = _Field'

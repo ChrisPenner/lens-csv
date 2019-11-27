@@ -27,9 +27,7 @@ import qualified Data.ByteString.Lazy as BL
 import Data.Csv hiding (index)
 import qualified Data.Csv.Streaming as S
 import Data.Foldable
-import qualified Data.Vector as V
 import Data.Either
-import System.IO.Unsafe
 
 data CsvRecord i where
   NamedCsvRecord :: NamedRecord -> CsvRecord Name
@@ -156,6 +154,3 @@ _Field' = prism embed project
   where
     project s = either (const $ Left s) Right . runParser . parseField $ s
     embed = toField
-
-testFile :: BL.ByteString
-testFile = unsafePerformIO $ BL.readFile "./data/simple.csv"

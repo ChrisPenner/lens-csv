@@ -24,9 +24,6 @@ dependencies:
 - cassava
 - lens
 - bytestring
-- text
-- vector
-- containers
 
 default-extensions:
 - FlexibleInstances

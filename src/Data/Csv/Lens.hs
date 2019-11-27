@@ -158,4 +158,4 @@ _Field' = prism embed project
     embed = toField
 
 testFile :: BL.ByteString
-testFile = unsafePerformIO $ BL.readFile "./data/florida.csv"
+testFile = unsafePerformIO $ BL.readFile "./data/simple.csv"

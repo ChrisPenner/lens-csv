@@ -132,10 +132,12 @@ _Record' = prism embed project
     embed :: b -> CsvRecord Int
     embed = CsvRecord . toRecord
 
-_NamedRecord :: forall a b. (FromNamedRecord a, ToNamedRecord a) => Prism' (CsvRecord Name) a
+_NamedRecord :: forall a b. (FromNamedRecord a, ToNamedRecord a) 
+             => Prism' (CsvRecord Name) a
 _NamedRecord = _NamedRecord'
 
-_NamedRecord' :: forall a b. (FromNamedRecord a, ToNamedRecord b) => Prism (CsvRecord Name) (CsvRecord Name) a b
+_NamedRecord' :: forall a b. (FromNamedRecord a, ToNamedRecord b) 
+              => Prism (CsvRecord Name) (CsvRecord Name) a b
 _NamedRecord' = prism embed project
   where
     project :: CsvRecord Name -> Either (CsvRecord Name) a

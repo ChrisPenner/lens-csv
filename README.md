@@ -1,8 +1,10 @@
 # lens-csv
 
+* Docs are on [Hackage](http://hackage.haskell.org/package/lens-csv)
+
 A lensy layer on top of Cassava which affords streaming, traversable, CSV parsing.
 
-Currently experimental (but working). Looking to improve error handling soon, currently parse failures are simply passed over by the traversals.
+Still experimental (but working). Please file an issue if there are features the library doesn't support.
 
 Example:
 

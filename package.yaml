@@ -25,22 +25,6 @@ dependencies:
 - lens
 - bytestring
 
-default-extensions:
-- FlexibleInstances
-- FlexibleContexts
-- ScopedTypeVariables
-- LambdaCase
-- ViewPatterns
-- TypeApplications
-- TypeOperators
-- DeriveFunctor
-- DeriveTraversable
-- DeriveGeneric
-- DerivingStrategies
-- StandaloneDeriving
-- TemplateHaskell
-- RankNTypes
-
 library:
   source-dirs: src
 

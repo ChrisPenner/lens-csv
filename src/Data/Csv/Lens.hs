@@ -1,3 +1,17 @@
+{-|
+Module      : Data.Csv.Lens
+Description : A lensy layer on top of Cassava which affords streaming, traversable, CSV parsing.
+Copyright   : (c) Chris Penner, 2019
+License     : BSD3
+
+The examples below use the following csv as the value @myCsv@:
+
+> state_code,population
+> NY,19540000
+> CA,39560000
+
+-}
+
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
@@ -9,12 +23,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Data.Csv.Lens
-    ( CsvRecord
-    , Csv'
-    , namedCsv
+    ( namedCsv
     , csv
     , headers
     , rows
+    , row
     , columns
     , columns'
     , column
@@ -25,6 +38,10 @@ module Data.Csv.Lens
     , _NamedRecord'
     , _Field
     , _Field'
+    , Csv'
+    , CsvRecord
+    , cassavaNamed
+    , cassavaUnnamed
     ) where
 
 import Control.Lens
@@ -93,6 +110,24 @@ instance FromNamedRecord (CsvRecord Name) where
 
 instance FromRecord (CsvRecord Int) where
   parseRecord r = pure $ CsvRecord r
+
+
+-- | An iso between the results of 'S.decodeByName' or 'S.decodeByNameWith' and a 'Csv'' for use with this library.
+--
+-- >>> S.decode HasHeader myCsv ^.. from cassavaUnnamed  . rows . column @String 0
+-- ["NY","CA"]
+cassavaUnnamed :: Iso' (Csv' Int) (S.Records Record)
+cassavaUnnamed = iso (\(UnnamedCsv rs) -> rs) UnnamedCsv
+
+-- | An iso between the results of 'S.decode' or 'S.decodeWith' and a 'Csv'' for use with this library.
+--
+-- You should typically just use 'namedCsv', but this can be helpful if you want to provide
+-- special options to provide custom decoding options.
+--
+-- >>> S.decodeByName  myCsv ^.. _Right . from cassavaNamed . rows . column @String "state_code"
+-- ["NY","CA"]
+cassavaNamed :: Iso' (Csv' Name) (Header, S.Records NamedRecord)
+cassavaNamed = iso (\(NamedCsv h rs) -> (h, rs)) (uncurry NamedCsv)
 
 -- | A prism which attempts to parse a 'BL.ByteString' into a structured @'Csv'' 'Name'@.
 --

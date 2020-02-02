@@ -2,6 +2,10 @@
 
 * Docs are on [Hackage](http://hackage.haskell.org/package/lens-csv)
 
+If you enjoy working with lenses (or need a hand learning how they work) my book [Optics By Example](https://leanpub.com/optics-by-example/) is a great place to learn more!
+
+[![Optics By Example](./optics-by-example.png)](https://leanpub.com/optics-by-example/)
+
 A lensy layer on top of Cassava which affords streaming, traversable, CSV parsing.
 
 Still experimental (but working). Please file an issue if there are features the library doesn't support.

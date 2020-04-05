@@ -42,6 +42,7 @@ module Data.Csv.Lens
     , CsvRecord
     , cassavaNamed
     , cassavaUnnamed
+    , adjustingOutputHeaders
     ) where
 
 import Control.Lens
@@ -177,10 +178,49 @@ unpackRecordWithIndex (CsvRecord r) = r
 --
 -- >>> myCsv ^@.. namedCsv . headers
 -- [(0,"state_code"),(1,"population")]
-headers :: IndexedFold Int (Csv' Name) Name
+headers :: IndexedTraversal' Int (Csv' Name) Name
 -- Note to self, this could technically be a traversal, but since we don't want to reparse all
 -- records with the new headers we don't yet allow editing headers.
 headers  f (NamedCsv h xs) = flip NamedCsv xs <$> (h & traversed %%@~ indexed f)
+
+-- | Allows rewriting/adding/removing headers on the CSV both before serializing
+-- Note that rewriting a header name DOES NOT affect any of the records, it only affects the
+-- choice and order of the columns in the output CSV. If you want to rename a column header
+-- you must also rename the name of that field on all rows in the csv.
+--
+-- This is a limitation of cassava itself.
+--
+-- Examples:
+--
+-- Drop the first column:
+--
+-- >>> BL.lines (myCsv & namedCsv . adjustingOutputHeaders (view _tail) %~ id)
+-- ["population\r","19540000\r","39560000\r"]
+--
+-- Add a new column with the population in millions
+--
+-- >>> import Data.Char (toLower)
+-- >>> addStateLower m = M.insert "state_lower" (m ^. ix "state_code" . to (map toLower)) m
+-- >>> :{
+--  BL.lines (myCsv
+--    & namedCsv
+--    -- Add "state_lower" to output headers so it will be serialized
+--    . adjustingOutputHeaders (<> pure "state_lower")
+--    . rows
+--    . _NamedRecord @(M.Map String String)
+--    -- Add "state_lower" to each record
+--    %~ addStateLower
+--           )
+-- :}
+-- ["state_code,population,state_lower\r","NY,19540000,ny\r","CA,39560000,ca\r"]
+--
+-- Reverse column order
+-- >>> BL.lines (myCsv & namedCsv . adjustingOutputHeaders (view reversed) %~ id)
+-- ["population,state_code\r","19540000,NY\r","39560000,CA\r"]
+--
+adjustingOutputHeaders :: (Header -> Header) -- ^ Adjust headers for the serialization step
+                    -> Iso' (Csv' Name) (Csv' Name)
+adjustingOutputHeaders f = iso id (\(NamedCsv h xs) -> NamedCsv (f h) xs)
 
 -- | An indexed traversal over each row of the csv as a 'CsvRecord'. Passes through
 -- a type witness signifying whether the records are 'Name' or 'Int' indexed.

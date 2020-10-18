@@ -38,3 +38,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - lens-csv
+    - tasty
+    - tasty-hspec
+    - tasty-discover
+    - containers

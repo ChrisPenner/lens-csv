@@ -183,7 +183,7 @@ headers :: IndexedTraversal' Int (Csv' Name) Name
 -- records with the new headers we don't yet allow editing headers.
 headers  f (NamedCsv h xs) = flip NamedCsv xs <$> (h & traversed %%@~ indexed f)
 
--- | Allows rewriting/adding/removing headers on the CSV both before serializing
+-- | Allows rewriting, adding and removing headers on the CSV both before serializing and after.
 -- Note that rewriting a header name DOES NOT affect any of the records, it only affects the
 -- choice and order of the columns in the output CSV. If you want to rename a column header
 -- you must also rename the name of that field on all rows in the csv.
@@ -214,7 +214,8 @@ headers  f (NamedCsv h xs) = flip NamedCsv xs <$> (h & traversed %%@~ indexed f)
 -- :}
 -- ["state_code,population,state_lower\r","NY,19540000,ny\r","CA,39560000,ca\r"]
 --
--- Reverse column order
+-- Reverse column order:
+--
 -- >>> BL.lines (myCsv & namedCsv . adjustingOutputHeaders (view reversed) %~ id)
 -- ["population,state_code\r","19540000,NY\r","39560000,CA\r"]
 --
